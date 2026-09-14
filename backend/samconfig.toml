@@ -1,0 +1,12 @@
+version = 0.1
+
+[dev.deploy.parameters]
+stack_name = "student-budget-planner-dev"
+resolve_s3 = true
+s3_prefix = "student-budget-planner-dev"
+region = "eu-west-1"
+profile = "student-budget-dev"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+fail_on_empty_changeset = false
+parameter_overrides = "Stage=\"dev\" FrontendOrigin=\"http://localhost:5173\""

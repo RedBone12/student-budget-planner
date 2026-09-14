@@ -1,0 +1,316 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Secure serverless backend for the Student Budget Planner.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+  FrontendOrigin:
+    Type: String
+    Default: http://localhost:5173
+
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Architectures:
+      - arm64
+    MemorySize: 256
+    Timeout: 10
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref BudgetTable
+
+Resources:
+  BudgetTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: student-budget-planner
+        - Key: Stage
+          Value: !Ref Stage
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub student-budget-planner-${Stage}
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: OPTIONAL
+      EnabledMfas:
+        - SOFTWARE_TOKEN_MFA
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 7
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate:
+          - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub student-budget-planner-web-${Stage}
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+  BudgetHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendOrigin
+          - http://127.0.0.1:5173
+          - !Sub https://${FrontendDistribution.DomainName}
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+        MaxAge: 600
+      Auth:
+        DefaultAuthorizer: CognitoJwtAuthorizer
+        Authorizers:
+          CognitoJwtAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              audience:
+                - !Ref UserPoolClient
+
+  BudgetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub student-budget-planner-api-${Stage}
+      CodeUri: src/
+      Handler: app.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BudgetTable
+      Events:
+        GetExpenses:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /expenses
+            Method: GET
+        CreateExpense:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /expenses
+            Method: POST
+        UpdateExpense:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /expenses/{id}
+            Method: PUT
+        DeleteExpense:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /expenses/{id}
+            Method: DELETE
+        GetCategories:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /categories
+            Method: GET
+        CreateCategory:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /categories
+            Method: POST
+        UpdateCategory:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /categories/{id}
+            Method: PUT
+        DeleteCategory:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /categories/{id}
+            Method: DELETE
+        GetSettings:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /settings
+            Method: GET
+        UpdateSettings:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /settings
+            Method: PATCH
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Project
+          Value: student-budget-planner
+        - Key: Stage
+          Value: !Ref Stage
+
+  FrontendOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub student-budget-planner-${Stage}-oac
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendRewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      AutoPublish: true
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          if (!request.uri.includes('.')) {
+            request.uri = '/index.html';
+          }
+          return request;
+        }
+      FunctionConfig:
+        Comment: Serve index.html for React routes
+        Runtime: cloudfront-js-2.0
+      Name: !Sub student-budget-planner-${Stage}-spa-routes
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub Student Budget Planner ${Stage}
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt FrontendRewriteFunction.FunctionARN
+          TargetOriginId: FrontendS3Origin
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2and3
+        Origins:
+          - DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            Id: FrontendS3Origin
+            OriginAccessControlId: !Ref FrontendOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        PriceClass: PriceClass_100
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${FrontendBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}
+
+Outputs:
+  ApiUrl:
+    Description: Base URL used by the React frontend.
+    Value: !Sub https://${BudgetHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${Stage}
+  UserPoolId:
+    Description: Cognito user pool ID used by the React frontend.
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: Public Cognito app client ID used by the React frontend.
+    Value: !Ref UserPoolClient
+  TableName:
+    Description: DynamoDB table name.
+    Value: !Ref BudgetTable
+  FrontendBucketName:
+    Description: Private S3 bucket containing the React build.
+    Value: !Ref FrontendBucket
+  FrontendDistributionId:
+    Description: CloudFront distribution used to publish the frontend.
+    Value: !Ref FrontendDistribution
+  WebsiteUrl:
+    Description: Public HTTPS URL for the Student Budget Planner.
+    Value: !Sub https://${FrontendDistribution.DomainName}

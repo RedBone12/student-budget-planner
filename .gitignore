@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.aws-sam/
+backend/src/node_modules/
+
+.env
+.env.local
+.env.*
+!.env.example
+
+tmp/
+
+*.log
