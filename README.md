@@ -59,21 +59,33 @@ CloudFront serves the React build from a private S3 bucket. Cognito verifies ema
 Requirements: Node.js 20 or later and npm.
 
 ```powershell
+cd frontend
 npm install
 npm run dev
 ```
 
 Create `.env.development` from `.env.example` and provide the deployed AWS region, Cognito user pool, app client, and API URL. Then open the Vite URL printed in the terminal.
 
+## Repository structure
+
+```text
+student-budget-planner/
+├── frontend/          React, Vite, frontend tests and static assets
+├── backend/           Lambda code, backend tests and AWS SAM template
+├── docs/              Portfolio and CV wording
+└── README.md          Project overview and architecture
+```
+
 ## Validation
 
 ```powershell
-npm test
-npm run build
+npm --prefix frontend test
+npm --prefix frontend run build
+node --test backend/tests/domain.test.mjs
 sam validate --lint --template-file backend/template.yaml
 ```
 
-The current regression suite contains 16 passing tests covering input validation, state migration, account separation, alerts, date handling, statistics, storage failure handling, and backend domain rules.
+The current test suite contains 11 frontend regression tests and 5 backend domain tests. They cover input validation, state migration, account separation, alerts, date handling, statistics, storage failure handling, and backend domain rules.
 
 ## Deployment
 

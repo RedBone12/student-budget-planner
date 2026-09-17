@@ -43,6 +43,7 @@ the API URL, Cognito IDs, private frontend bucket, CloudFront distribution ID, a
 public website URL. The API accepts the two local development origins and the
 CloudFront HTTPS origin.
 
-After a frontend change, rebuild and upload `dist` to the bucket named by the
+After a frontend change, run `npm --prefix frontend run build` from the project
+root and upload `frontend/dist` to the bucket named by the
 `FrontendBucketName` stack output. Then create a CloudFront invalidation for `/*`
 using the `FrontendDistributionId` output so visitors receive the new build.
