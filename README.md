@@ -116,6 +116,10 @@ AWS resources are declared in [`backend/template.yaml`](backend/template.yaml). 
 
 The deployed development stack is `student-budget-planner-dev` in `eu-west-1`. CloudFormation outputs the generated API URL, Cognito IDs, S3 bucket name, CloudFront distribution ID, and website URL.
 
+[`Deploy development`](.github/workflows/deploy.yml) automatically deploys the current `main` commit after all CI checks succeed. It uses AWS OIDC, a scoped CloudFormation execution role, SAM deploy, a frontend build configured from stack outputs, private S3 upload and CloudFront invalidation with an HTTPS smoke check. One-time OIDC bootstrap and an optional `sam local` Docker example are documented in [`docs/deployment.md`](docs/deployment.md). Missing AWS configuration is reported explicitly; the workflow does not store long-lived AWS access keys.
+
+[`Deploy development`](.github/workflows/deploy.yml) automatically deploys the current `main` commit after all CI checks succeed. It uses AWS OIDC, a scoped CloudFormation execution role, SAM deploy, a frontend build configured from stack outputs, private S3 upload and CloudFront invalidation with an HTTPS smoke check. One-time OIDC bootstrap and an optional `sam local` Docker example are documented in [`docs/deployment.md`](docs/deployment.md). Missing AWS configuration is reported explicitly; the workflow does not store long-lived AWS access keys.
+
 ## Current scope
 
 Budget and transaction notifications are generated inside the application. Monthly summary email and daily reminder controls currently store preferences only; scheduled email delivery is outside the implemented scope.

@@ -1,0 +1,5 @@
+{
+  "BudgetFunction": {
+    "TABLE_NAME": "local-demo-never-used-without-identity"
+  }
+}

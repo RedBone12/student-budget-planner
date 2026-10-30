@@ -37,6 +37,8 @@ jobs:
         run: npm --prefix frontend run coverage
       - name: Backend tests and coverage gate
         run: npm --prefix backend/src run coverage
+      - name: Deployment orchestration tests
+        run: node --test scripts/*.test.mjs
       - name: Build frontend
         run: npm --prefix frontend run build
       - name: Upload frontend coverage
@@ -98,6 +100,11 @@ jobs:
           version: '1.166.2'
       - name: Validate SAM and CloudFormation
         run: sam validate --lint --region eu-west-1 --template-file backend/template.yaml
+        env:
+          AWS_EC2_METADATA_DISABLED: 'true'
+          SAM_CLI_TELEMETRY: '0'
+      - name: Validate OIDC bootstrap infrastructure
+        run: sam validate --lint --region eu-west-1 --template-file infra/github-oidc.yaml
         env:
           AWS_EC2_METADATA_DISABLED: 'true'
           SAM_CLI_TELEMETRY: '0'

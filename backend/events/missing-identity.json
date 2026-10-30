@@ -1,0 +1,8 @@
+{
+  "version": "2.0",
+  "routeKey": "GET /expenses",
+  "rawPath": "/expenses",
+  "requestContext": {
+    "http": { "method": "GET", "path": "/expenses" }
+  }
+}

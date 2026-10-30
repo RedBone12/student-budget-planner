@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "npm run test:regression && vitest run",
-    "lint": "cd .. && node frontend/node_modules/eslint/bin/eslint.js frontend/src frontend/tests frontend/e2e frontend/*.js eslint.config.mjs backend/src backend/tests --max-warnings=0",
+    "lint": "cd .. && node frontend/node_modules/eslint/bin/eslint.js frontend/src frontend/tests frontend/e2e frontend/*.js eslint.config.mjs scripts backend/src backend/tests --max-warnings=0",
     "coverage": "npm run coverage:logic && vitest run --coverage",
     "test:regression": "node --test tests/*.test.js",
     "test:components": "vitest run tests/components",

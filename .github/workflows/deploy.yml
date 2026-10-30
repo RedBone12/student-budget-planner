@@ -1,0 +1,118 @@
+name: Deploy development
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deploy-student-budget-planner-dev
+  cancel-in-progress: false
+
+jobs:
+  eligibility:
+    name: Verify tested main commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success')
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      enabled: ${{ steps.commit.outputs.enabled }}
+    steps:
+      - name: Require successful CI on the current main commit
+        id: commit
+        uses: actions/github-script@v7
+        env:
+          DEPLOY_ROLE: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          CFN_ROLE: ${{ vars.AWS_CLOUDFORMATION_ROLE_ARN }}
+          ARTIFACT_BUCKET: ${{ vars.AWS_ARTIFACT_BUCKET }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: branch } = await github.rest.repos.getBranch({ owner, repo, branch: 'main' });
+            const sha = branch.commit.sha;
+            const candidate = context.eventName === 'workflow_run'
+              ? context.payload.workflow_run.head_sha : context.sha;
+            if (candidate !== sha) {
+              core.notice('Skipping a superseded commit; only the current main may deploy.');
+              core.setOutput('enabled', 'false');
+              return;
+            }
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner, repo, workflow_id: 'ci.yml', branch: 'main',
+              head_sha: sha, event: 'push', status: 'success', per_page: 10,
+            });
+            const run = data.workflow_runs.find(r => r.head_sha === sha && r.conclusion === 'success');
+            if (!run) throw new Error('This main commit has no successful push CI run.');
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner, repo, run_id: run.id, filter: 'latest', per_page: 100,
+            });
+            for (const name of ['Tests, lint and build', 'Browser E2E', 'SAM lint']) {
+              if (!jobs.some(job => job.name === name && job.conclusion === 'success')) {
+                throw new Error(`Required CI job did not succeed: ${name}`);
+              }
+            }
+            core.setOutput('sha', sha);
+            const missing = ['DEPLOY_ROLE', 'CFN_ROLE', 'ARTIFACT_BUCKET'].filter(key => !process.env[key]);
+            if (missing.length) {
+              core.warning(`AWS bootstrap is incomplete (${missing.join(', ')}). No deployment attempted.`);
+              await core.summary.addHeading('AWS deployment is not configured')
+                .addRaw('Run the OIDC bootstrap and set the three repository variables described in docs/deployment.md. No AWS resources were changed.')
+                .write();
+              core.setOutput('enabled', 'false');
+              return;
+            }
+            core.setOutput('enabled', 'true');
+
+  deploy:
+    name: Deploy SAM and frontend
+    needs: eligibility
+    if: needs.eligibility.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: eu-west-1
+      AWS_DEFAULT_REGION: eu-west-1
+      AWS_EC2_METADATA_DISABLED: 'true'
+      SAM_CLI_TELEMETRY: '0'
+      APPLICATION_STACK: student-budget-planner-dev
+      AWS_ARTIFACT_BUCKET: ${{ vars.AWS_ARTIFACT_BUCKET }}
+      AWS_CLOUDFORMATION_ROLE_ARN: ${{ vars.AWS_CLOUDFORMATION_ROLE_ARN }}
+      DEPLOY_SHA: ${{ needs.eligibility.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.eligibility.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.13.0'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: aws-actions/setup-sam@v2
+        with:
+          version: '1.166.2'
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: eu-west-1
+          role-session-name: budget-deploy-${{ github.run_id }}
+          mask-aws-account-id: true
+      - run: npm ci --prefix frontend
+      - name: Deploy backend, build from stack outputs and publish frontend
+        run: node scripts/deploy.mjs
