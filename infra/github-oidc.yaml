@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: GitHub main-only OIDC deployment identity for the existing Budget Planner development stack.
+
+Parameters:
+  Repository:
+    Type: String
+    Default: RedBone12/student-budget-planner
+    AllowedValues: [RedBone12/student-budget-planner]
+  ExistingOidcProviderArn:
+    Type: String
+    Default: ''
+  ApplicationStackName:
+    Type: String
+    Default: student-budget-planner-dev
+    AllowedValues: [student-budget-planner-dev]
+  ApplicationResourceArns:
+    Type: CommaDelimitedList
+    Description: Existing application resources discovered by the bootstrap script; not account-wide wildcards.
+  FrontendBucketArn:
+    Type: String
+  DistributionArn:
+    Type: String
+  RuntimeRoleArn:
+    Type: String
+
+Conditions:
+  CreateProvider: !Equals [!Ref ExistingOidcProviderArn, '']
+
+Resources:
+  GitHubProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: RemoveOldSamArtifacts
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      Tags:
+        - Key: Project
+          Value: student-budget-planner
+
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ExistingApplicationResources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:*
+                  - dynamodb:*
+                  - cognito-idp:*
+                  - apigateway:*
+                  - s3:*
+                  - cloudfront:*
+                Resource: !Ref ApplicationResourceArns
+              - Effect: Allow
+                Action:
+                  - iam:GetRole
+                  - iam:GetRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                  - iam:UpdateAssumeRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource: !Ref RuntimeRoleArn
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !Ref RuntimeRoleArn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: lambda.amazonaws.com
+              - Effect: Allow
+                Action: [iam:AttachRolePolicy, iam:DetachRolePolicy]
+                Resource: !Ref RuntimeRoleArn
+                Condition:
+                  ArnEquals:
+                    iam:PolicyARN: !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+              - Effect: Allow
+                Action: [s3:GetObject, s3:GetObjectVersion]
+                Resource: !Sub ${ArtifactBucket.Arn}/${ApplicationStackName}/sam/*
+
+  GitHubDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If [CreateProvider, !Ref GitHubProvider, !Ref ExistingOidcProviderArn]
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${Repository}:ref:refs/heads/main
+                  - repo:RedBone12@236110270/student-budget-planner@1182338332:ref:refs/heads/main
+      Policies:
+        - PolicyName: DeployExistingApplication
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:GetTemplate
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:ListStackResources
+                Resource:
+                  - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${ApplicationStackName}/*
+                  - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/samcli-deploy*/*
+                  - !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt CloudFormationRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: cloudformation.amazonaws.com
+              - Effect: Allow
+                Action: [s3:GetBucketLocation, s3:ListBucket, s3:ListBucketMultipartUploads]
+                Resource: !GetAtt ArtifactBucket.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:AbortMultipartUpload, s3:ListMultipartUploadParts]
+                Resource: !Sub ${ArtifactBucket.Arn}/${ApplicationStackName}/sam/*
+              - Effect: Allow
+                Action: [s3:GetBucketLocation, s3:ListBucket]
+                Resource: !Ref FrontendBucketArn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub ${FrontendBucketArn}/*
+              - Effect: Allow
+                Action: [cloudfront:CreateInvalidation, cloudfront:GetInvalidation]
+                Resource: !Ref DistributionArn
+
+Outputs:
+  DeployRoleArn:
+    Value: !GetAtt GitHubDeployRole.Arn
+  CloudFormationRoleArn:
+    Value: !GetAtt CloudFormationRole.Arn
+  ArtifactBucketName:
+    Value: !Ref ArtifactBucket

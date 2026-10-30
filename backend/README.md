@@ -47,3 +47,5 @@ After a frontend change, run `npm --prefix frontend run build` from the project
 root and upload `frontend/dist` to the bucket named by the
 `FrontendBucketName` stack output. Then create a CloudFront invalidation for `/*`
 using the `FrontendDistributionId` output so visitors receive the new build.
+
+The automated alternative is the `Deploy development` GitHub Actions workflow. It deploys only a successfully tested current `main` commit using AWS OIDC, then builds and uploads the frontend and invalidates CloudFront. See [`docs/deployment.md`](../docs/deployment.md) for the one-time identity bootstrap, repository variables, rollback behavior and a safe SAM local container example.
