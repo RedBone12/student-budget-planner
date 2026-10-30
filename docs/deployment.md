@@ -70,6 +70,6 @@ Success is a Lambda response with `statusCode: 400` and `Authenticated user is m
 
 ## Validation
 
-CI includes four deployment-orchestration tests (output configuration, publication order, failure propagation and configuration guards), ESLint over the scripts, and linting of both CloudFormation templates. Actual OIDC authentication and AWS deployment require a live workflow run; unit tests do not substitute for that acceptance check.
+CI includes four deployment-orchestration tests (output configuration, publication order, failure propagation and configuration guards), three offline PowerShell bootstrap scenarios (missing, external and stack-owned OIDC providers), ESLint over the scripts, and linting of both CloudFormation templates. Actual OIDC authentication and AWS deployment require a live workflow run; unit tests do not substitute for that acceptance check.
 
 References: [GitHub OIDC for AWS](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws), [SAM deploy options](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-deploy.html), [temporary AWS CLI console login](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html).
