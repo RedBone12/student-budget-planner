@@ -11,3 +11,6 @@ backend/src/node_modules/
 tmp/
 
 *.log
+coverage/
+playwright-report/
+test-results/
