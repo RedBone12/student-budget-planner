@@ -2,15 +2,22 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function parseBody(body) {
   if (!body) return {};
+  let parsed;
   try {
-    return JSON.parse(body);
+    parsed = JSON.parse(body);
   } catch {
     throw new InputError('Request body must be valid JSON');
   }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new InputError('Request body must be a JSON object');
+  }
+  return parsed;
 }
 
 export function userPartitionKey(subject) {
-  if (!subject) throw new InputError('Authenticated user is missing');
+  if (typeof subject !== 'string' || !subject.trim()) {
+    throw new InputError('Authenticated user is missing');
+  }
   return `USER#${subject}`;
 }
 

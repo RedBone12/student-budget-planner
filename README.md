@@ -56,7 +56,7 @@ CloudFront serves the React build from a private S3 bucket. Cognito verifies ema
 
 ## Local development
 
-Requirements: Node.js 20 or later and npm.
+Requirements: Node.js 24.13.0 and npm (matching CI).
 
 ```powershell
 cd frontend
@@ -80,12 +80,35 @@ student-budget-planner/
 
 ```powershell
 npm --prefix frontend test
+npm --prefix frontend run lint
+npm --prefix frontend run coverage
+npm --prefix frontend run test:components
+npm --prefix frontend run test:integration
 npm --prefix frontend run build
-node --test backend/tests/domain.test.mjs
+npm --prefix backend/src test
+npm --prefix backend/src run coverage
+# First install the browser: cd frontend; npx playwright install chromium
+npm --prefix frontend run test:e2e
 sam validate --lint --template-file backend/template.yaml
 ```
 
-The current test suite contains 11 frontend regression tests and 5 backend domain tests. They cover input validation, state migration, account separation, alerts, date handling, statistics, storage failure handling, and backend domain rules.
+The test suite contains 11 frontend regression tests, 12 React Testing Library page tests, 6 frontend API client tests, 5 backend domain tests, 9 Lambda handler tests, 2 HTTP API integration tests, and 1 Chromium browser journey. See [`docs/testing.md`](docs/testing.md) for commands, coverage scope, and simulation boundaries.
+
+### Continuous integration
+
+[`CI`](.github/workflows/ci.yml) runs on every pull request, pushes to `main`, and manual dispatch. It installs locked dependencies with `npm ci`, checks frontend/backend JavaScript with ESLint (including JSX and test infrastructure), runs the regression, page, API and handler suites with coverage gates, builds the frontend, runs a Chromium browser journey, and runs `sam validate --lint`. It needs no AWS credentials and does not deploy. The build, frontend coverage report and browser report are retained for seven days as CI artifacts. The build artifact is not a configured production release.
+
+Node's built-in V8 coverage runner and Vitest enforce these baselines:
+
+| Suite | Lines | Branches | Functions |
+| --- | --- | --- | --- |
+| Frontend regression logic (Node) | 74% | 82% | 77% |
+| Frontend selected pages/components and API client (Vitest) | 85% | 75% | 85% |
+| Backend handler and domain modules (Node) | 95% | 85% | 100% |
+
+The frontend regression gate covers modules loaded by the original Node tests. The Vitest gate explicitly includes `ExpensesPage`, `AuthPage`, `ExpenseForm`, `RecentExpenses` and the API client, including unexecuted code in those files. Other frontend pages are outside this coverage scope. Backend coverage includes both application source modules (`app.mjs` and `domain.mjs`), excluding SDK dependencies. Coverage tables appear in the Actions logs; falling below any threshold fails the job. AWS services are simulated locally: these tests do not verify deployed infrastructure, JWT signatures, IAM policies or real DynamoDB behavior.
+
+For a fresh checkout, run `npm ci --prefix frontend` and `npm ci --prefix backend/src` before the validation commands. Install Chromium from the frontend directory with `npx playwright install chromium` (CI uses `--with-deps` on Linux). SAM CLI 1.166.2 is used in CI. To make these checks mandatory before merging, configure the repository ruleset or branch protection to require `Tests, lint and build`, `Browser E2E` and `SAM lint` after the first Actions run. Adding a workflow alone does not enable branch protection.
 
 ## Deployment
 
