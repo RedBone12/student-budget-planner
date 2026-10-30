@@ -39,6 +39,9 @@ jobs:
         run: npm --prefix backend/src run coverage
       - name: Deployment orchestration tests
         run: node --test scripts/*.test.mjs
+      - name: OIDC bootstrap idempotence tests
+        shell: pwsh
+        run: ./scripts/bootstrap-oidc.test.ps1
       - name: Build frontend
         run: npm --prefix frontend run build
       - name: Upload frontend coverage

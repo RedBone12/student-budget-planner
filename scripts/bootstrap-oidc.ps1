@@ -53,6 +53,15 @@ $applicationArns = @(
 )
 $providers = (Read-AwsJson @('iam', 'list-open-id-connect-providers')).OpenIDConnectProviderList
 $provider = $providers | Where-Object Arn -like '*/token.actions.githubusercontent.com' | Select-Object -First 1
+# Keep a provider owned by this bootstrap in its CreateProvider condition on
+# subsequent runs. Treating it as external would remove it from the stack.
+$bootstrap = (Read-AwsJson @('cloudformation', 'list-stacks', '--stack-status-filter', 'CREATE_COMPLETE', 'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_COMPLETE')).StackSummaries |
+    Where-Object StackName -eq 'student-budget-planner-github-oidc'
+if ($bootstrap -and $provider) {
+    $owned = (Read-AwsJson @('cloudformation', 'list-stack-resources', '--stack-name', 'student-budget-planner-github-oidc')).StackResourceSummaries |
+        Where-Object { $_.LogicalResourceId -eq 'GitHubProvider' -and $_.ResourceStatus -ne 'DELETE_COMPLETE' }
+    if ($owned.PhysicalResourceId -eq $provider.Arn) { $provider = $null }
+}
 $parameters = @{
     ApplicationStackName = $StackName
     ApplicationResourceArns = $applicationArns -join ','
