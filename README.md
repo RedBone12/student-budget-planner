@@ -92,7 +92,7 @@ npm --prefix frontend run test:e2e
 sam validate --lint --template-file backend/template.yaml
 ```
 
-The test suite contains 11 frontend regression tests, 12 React Testing Library page tests, 6 frontend API client tests, 5 backend domain tests, 9 Lambda handler tests, 2 HTTP API integration tests, and 1 Chromium browser journey. See [`docs/testing.md`](docs/testing.md) for commands, coverage scope, and simulation boundaries.
+The test suite contains 13 frontend regression tests, 21 React Testing Library page tests, 7 frontend API client tests, 32 backend domain/handler/HTTP/planning tests, and 2 Chromium browser journeys. See [`docs/testing.md`](docs/testing.md) for commands, coverage scope, and simulation boundaries.
 
 ### Continuous integration
 
@@ -106,7 +106,7 @@ Node's built-in V8 coverage runner and Vitest enforce these baselines:
 | Frontend selected pages/components and API client (Vitest) | 85% | 75% | 85% |
 | Backend handler and domain modules (Node) | 95% | 85% | 100% |
 
-The frontend regression gate covers modules loaded by the original Node tests. The Vitest gate explicitly includes `ExpensesPage`, `AuthPage`, `ExpenseForm`, `RecentExpenses` and the API client, including unexecuted code in those files. Other frontend pages are outside this coverage scope. Backend coverage includes both application source modules (`app.mjs` and `domain.mjs`), excluding SDK dependencies. Coverage tables appear in the Actions logs; falling below any threshold fails the job. AWS services are simulated locally: these tests do not verify deployed infrastructure, JWT signatures, IAM policies or real DynamoDB behavior.
+The frontend regression gate covers modules loaded by the original Node tests. The Vitest gate explicitly includes `ExpensesPage`, `AuthPage`, `ExpenseForm`, `RecentExpenses`, `PlanningPage`, `CsvImport`, `ExpenseFilters`, budget utilities and the API client, including unexecuted code in those files. Other frontend pages are outside this coverage scope. Backend coverage includes all four application source modules (`app.mjs`, `domain.mjs`, `planning.mjs` and `maintenance.mjs`), excluding SDK dependencies. Coverage tables appear in the Actions logs; falling below any threshold fails the job. AWS services are simulated locally: these tests do not verify deployed infrastructure, JWT signatures, IAM policies or real DynamoDB behavior.
 
 For a fresh checkout, run `npm ci --prefix frontend` and `npm ci --prefix backend/src` before the validation commands. Install Chromium from the frontend directory with `npx playwright install chromium` (CI uses `--with-deps` on Linux). SAM CLI 1.166.2 is used in CI. To make these checks mandatory before merging, configure the repository ruleset or branch protection to require `Tests, lint and build`, `Browser E2E` and `SAM lint` after the first Actions run. Adding a workflow alone does not enable branch protection.
 
@@ -118,8 +118,7 @@ The deployed development stack is `student-budget-planner-dev` in `eu-west-1`. C
 
 [`Deploy development`](.github/workflows/deploy.yml) automatically deploys the current `main` commit after all CI checks succeed. It uses AWS OIDC, a scoped CloudFormation execution role, SAM deploy, a frontend build configured from stack outputs, private S3 upload and CloudFront invalidation with an HTTPS smoke check. One-time OIDC bootstrap and an optional `sam local` Docker example are documented in [`docs/deployment.md`](docs/deployment.md). Missing AWS configuration is reported explicitly; the workflow does not store long-lived AWS access keys.
 
-[`Deploy development`](.github/workflows/deploy.yml) automatically deploys the current `main` commit after all CI checks succeed. It uses AWS OIDC, a scoped CloudFormation execution role, SAM deploy, a frontend build configured from stack outputs, private S3 upload and CloudFront invalidation with an HTTPS smoke check. One-time OIDC bootstrap and an optional `sam local` Docker example are documented in [`docs/deployment.md`](docs/deployment.md). Missing AWS configuration is reported explicitly; the workflow does not store long-lived AWS access keys.
 
 ## Current scope
 
-Budget and transaction notifications are generated inside the application. Monthly summary email and daily reminder controls currently store preferences only; scheduled email delivery is outside the implemented scope.
+Combined date/category/amount filters, immutable monthly settlements, weekly/monthly recurring expenses and previewed CSV imports are implemented. Scheduled email uses EventBridge and SES with explicit opt-in and verified account email. SES sandbox restrictions apply. See [business features](docs/business-features.md) for UTC calendar rules, import limits, retry behavior and deployment verification. Bank-specific statement import and AI features are outside the current scope.

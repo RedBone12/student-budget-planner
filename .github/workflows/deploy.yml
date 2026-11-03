@@ -91,6 +91,7 @@ jobs:
       AWS_ARTIFACT_BUCKET: ${{ vars.AWS_ARTIFACT_BUCKET }}
       AWS_CLOUDFORMATION_ROLE_ARN: ${{ vars.AWS_CLOUDFORMATION_ROLE_ARN }}
       DEPLOY_SHA: ${{ needs.eligibility.outputs.sha }}
+      AWS_MAIL_SENDER: ${{ secrets.AWS_MAIL_SENDER }}
     steps:
       - uses: actions/checkout@v4
         with:

@@ -54,4 +54,13 @@ export const budgetApi = {
   updateCategory: (category) => request(`/categories/${encodeURIComponent(category.id)}`, json('PUT', category)),
   deleteCategory: (id) => request(`/categories/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   updateSettings: (settings) => request('/settings', json('PATCH', settings)),
+  deliveryStatus: () => request('/email-status'),
+  listRecurring: () => request('/recurring'),
+  createRecurring: (rule) => request('/recurring', json('POST', rule)),
+  updateRecurring: (rule) => request(`/recurring/${encodeURIComponent(rule.id)}`, json('PUT', rule)),
+  deleteRecurring: (id) => request(`/recurring/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  applyDue: () => request('/recurring/apply-due', { method: 'POST' }),
+  listSettlements: () => request('/settlements'),
+  settleMonth: (month) => request('/settlements', json('POST', { month })),
+  importExpenses: (input) => request('/expenses/import', json('POST', input)),
 };

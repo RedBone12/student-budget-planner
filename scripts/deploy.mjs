@@ -34,7 +34,8 @@ export async function deploy({ settings = process.env, runCommand = execFileSync
     '--s3-bucket', settings.AWS_ARTIFACT_BUCKET, '--s3-prefix', `${stack}/sam`,
     '--role-arn', settings.AWS_CLOUDFORMATION_ROLE_ARN,
     '--capabilities', 'CAPABILITY_IAM', '--no-confirm-changeset', '--no-fail-on-empty-changeset',
-    '--parameter-overrides', 'Stage=dev', 'FrontendOrigin=http://localhost:5173']);
+    '--parameter-overrides', 'Stage=dev', 'FrontendOrigin=http://localhost:5173',
+    `MailSender=${settings.AWS_MAIL_SENDER || ''}`, 'SesSandbox=true']);
   const description = JSON.parse(aws(['cloudformation', 'describe-stacks', '--stack-name', stack, '--output', 'json']));
   const { values, env } = frontendEnvironment(description.Stacks[0].Outputs, settings.AWS_REGION);
   run('npm', ['--prefix', 'frontend', 'run', 'build'], { env: { ...settings, ...env } });

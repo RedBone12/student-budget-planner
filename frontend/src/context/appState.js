@@ -14,11 +14,12 @@ export function createBook(demo = false) {
     notifications: demo ? [...DEFAULT_NOTIFICATIONS] : [],
     settings: { ...DEFAULT_SETTINGS },
     alertLevels: {},
+    alertMonth: new Date().toISOString().slice(0, 7),
   };
 }
 function bookOf(state) {
-  const { categories, expenses, notifications, settings, alertLevels } = state;
-  return { categories, expenses, notifications, settings, alertLevels };
+  const { categories, expenses, notifications, settings, alertLevels, alertMonth } = state;
+  return { categories, expenses, notifications, settings, alertLevels, alertMonth };
 }
 function saveAccount(state) {
   return state.session.user
@@ -204,7 +205,9 @@ function reduceAction(state, action) {
 function updateAlerts(state) {
   if (!state.session.isAuthenticated || !state.settings.budgetAlerts)
     return state;
-  const spentByCategory = state.expenses.reduce((totals, expense) => {
+  const month = new Date().toISOString().slice(0, 7);
+  const oldLevels = state.alertMonth === month ? state.alertLevels : {};
+  const spentByCategory = state.expenses.filter(expense => expense.date.startsWith(month)).reduce((totals, expense) => {
     totals[expense.categoryId] =
       (totals[expense.categoryId] || 0) + Number(expense.amount);
     return totals;
@@ -216,7 +219,7 @@ function updateAlerts(state) {
     const ratio = category.budget > 0 ? spent / category.budget : 0;
     const level = ratio >= 1 ? 100 : ratio >= 0.8 ? 80 : 0;
     levels[category.id] = level;
-    if (level > (state.alertLevels?.[category.id] || 0))
+    if (level > (oldLevels?.[category.id] || 0))
       notifications.push(
         createNotification(
           category.name +
@@ -235,6 +238,7 @@ function updateAlerts(state) {
   return {
     ...state,
     alertLevels: levels,
+    alertMonth: month,
     notifications: [...notifications, ...state.notifications],
   };
 }

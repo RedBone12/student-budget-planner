@@ -50,6 +50,7 @@ $applicationArns = @(
     $frontendArn, "$frontendArn/*", $distributionArn,
     $rewriteArn,
     "arn:${partition}:cloudfront::${account}:origin-access-control/$oac"
+    "arn:${partition}:events:${Region}:${account}:rule/student-budget-planner-daily-dev"
 )
 $providers = (Read-AwsJson @('iam', 'list-open-id-connect-providers')).OpenIDConnectProviderList
 $provider = $providers | Where-Object Arn -like '*/token.actions.githubusercontent.com' | Select-Object -First 1
