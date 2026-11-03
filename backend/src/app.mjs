@@ -139,7 +139,14 @@ export function createHandler({ documentClient, tableName, mailClient = new SESv
       if (!old.Item) throw Object.assign(new Error('Not found'), { name: 'ConditionalCheckFailedException' });
       if (old.Item.startDate !== rule.startDate || old.Item.frequency !== rule.frequency) throw new InputError('Create a new schedule to change its start date or frequency');
       rule.nextDate = old.Item.nextDate;
-      await putExisting(PK, `RECURRING#${id}`, { ...rule, entityType: 'RECURRING' });
+      try {
+        await documentClient.send(new PutCommand({ TableName: tableName,
+          Item: { PK, SK: `RECURRING#${id}`, ...rule, entityType: 'RECURRING' },
+          ConditionExpression: 'revision = :revision', ExpressionAttributeValues: { ':revision': old.Item.revision } }));
+      } catch (error) {
+        if (error.name === 'ConditionalCheckFailedException') throw new InputError('Schedule changed while saving. Reload and try again.');
+        throw error;
+      }
     } else await putNew(PK, `RECURRING#${rule.id}`, { ...rule, entityType: 'RECURRING' });
     return recurringForClient(rule);
   }

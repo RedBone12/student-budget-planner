@@ -30,6 +30,23 @@ test('scheduled events reach maintenance, while an API body cannot impersonate t
   assert.equal(parse(forged).message, 'Authenticated user is missing');
 });
 
+test('editing a recurring rule cannot rewind progress advanced by a concurrent worker', async () => {
+  const { handler, client, row } = await setup();
+  const rule = parse(await handler(event('POST /recurring', { ...row, startDate: '2026-11-01', frequency: 'monthly' })));
+  const send = client.send.bind(client);
+  client.send = async command => {
+    if (command.constructor.name === 'PutCommand' && command.input.ConditionExpression === 'revision = :revision') {
+      const stored = [...client.items.values()].find(item => item.id === rule.id);
+      stored.nextDate = '2026-12-01'; stored.revision = 'worker-advanced';
+    }
+    return send(command);
+  };
+  const response = await handler(event('PUT /recurring/{id}', { ...rule, active: false }, rule.id));
+  assert.equal(response.statusCode, 400);
+  assert.match(parse(response).message, /Reload/);
+  assert.equal(parse(await handler(event('GET /recurring')))[0].nextDate, '2026-12-01');
+});
+
 test('filters combine category, inclusive date and amount boundaries; invalid ranges are rejected', () => {
   const rows = [expense, { ...expense, amount: 20 }, { ...expense, categoryId: 'rent' }, { ...expense, date: '2026-09-30' }];
   assert.equal(filterExpenses(rows, { categoryId: 'food', fromDate: '2026-10-02', toDate: '2026-10-02', minAmount: '12.50', maxAmount: '12.50' }).length, 1);
