@@ -16,7 +16,7 @@ Up to twelve candidate evidence items are provided to the model. It selects up t
 
 The adapter uses the Bedrock Converse API and `eu.amazon.nova-micro-v1:0`, with its EU inference profile. IAM permits only this profile and its listed Nova Micro foundation-model ARNs. No API key is stored. `AiModelId` can be set to an empty string to disable model calls.
 
-Only anonymous evidence IDs, kinds, counts and monetary aggregates/candidate amounts enter the model request. Category names, category/expense IDs, transaction dates, notes, raw transaction lists, email and Cognito subjects are excluded. Evidence-to-record mapping stays inside the user's partition and browser. The frontend explains this boundary before the request. Cross-region inference can route within the profile's EU regions.
+Only anonymous evidence IDs, kinds, counts and monetary aggregates enter the model request. Category names, category/expense IDs, individual transaction amounts/dates, notes, raw transaction lists, email and Cognito subjects are excluded. Evidence-to-record mapping stays inside the user's partition and browser. The frontend explains this boundary before the request. Cross-region inference can route within the profile's EU regions.
 
 ## Cost, caching and failures
 
