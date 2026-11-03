@@ -32,6 +32,7 @@ test('calculations use cents, same elapsed days, complete-month history and medi
 });
 test('model payload excludes private names, notes, raw IDs, dates and raw transactions', () => {
   const payload = JSON.stringify(modelPayload(facts));
+  assert.equal(payload.includes('"amountCents"'), false);
   for (const value of ['Private health', 'private-category', 'private-expense', 'Secret', '2026-11-02']) assert.equal(payload.includes(value), false);
 });
 test('model output validates evidence references and bounded explanations with no invented numbers', () => {

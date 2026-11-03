@@ -44,8 +44,8 @@ export function calculateEvidence(expenses, categories, today) {
 
 export function modelPayload(facts) {
   return { period: 'Current UTC month to date versus the same calendar days of the previous month. Historical averages include three complete calendar months.',
-    evidence: facts.evidence.map(({ id, kind, spentCents, previousCents, budgetCents, averageCents, historyMonths, amountCents, medianCents, sampleCount, proposedBudgetCents }) =>
-      ({ id, kind, spentCents, previousCents, budgetCents, averageCents, historyMonths, amountCents, medianCents, sampleCount, proposedBudgetCents })) };
+    evidence: facts.evidence.map(({ id, kind, spentCents, previousCents, budgetCents, averageCents, historyMonths, medianCents, sampleCount, proposedBudgetCents }) =>
+      ({ id, kind, spentCents, previousCents, budgetCents, averageCents, historyMonths, medianCents, sampleCount, proposedBudgetCents })) };
 }
 
 export function parseExplanation(text, facts) {
