@@ -212,3 +212,68 @@ input[type='checkbox'] { width: 46px; height: 24px; }
   .actions-cell { flex-direction: column; }
   th, td { padding: 10px 8px; }
 }
+
+/* Penny is an inline vector companion: no image downloads or model calls. */
+.insights-card {
+  grid-column: 1 / -1;
+  position: relative;
+  border: 1px solid #d5e8d9;
+  background: linear-gradient(120deg, #fffef8 0%, #f0faf1 75%, #e7f5e9 100%);
+  overflow: hidden;
+}
+.insights-intro { display: flex; align-items: center; gap: 22px; }
+.penny-scene { position: relative; flex: 0 0 148px; height: 156px; }
+.penny { width: 148px; height: 156px; overflow: visible; }
+.penny-body { transform-origin: 80px 128px; animation: penny-breathe 4s ease-in-out infinite; }
+.penny-eye { animation: penny-blink 6s infinite; transform-origin: 80px 88px; }
+.penny-sleepy-eyes { display: none; }
+.penny-spark { position: absolute; z-index: 1; color: #ae7b2c; font-size: 21px; }
+.penny-spark-one { left: 4px; top: 24px; transform: rotate(-12deg); }
+.penny-spark-two { right: 2px; top: 4px; font-size: 30px; color: #77a48b; }
+.penny-label { color: #486956; font-size: .68rem; font-weight: 800; letter-spacing: .12em; }
+.insights-welcome { flex: 1; min-width: 0; }
+.insights-welcome h2 { margin: 8px 0 12px; color: #244e3c; font-size: clamp(1.3rem, 2.3vw, 1.8rem); }
+.penny-bubble {
+  display: inline-block;
+  position: relative;
+  margin: 0;
+  padding: 11px 16px;
+  border: 1px solid #d5e8d9;
+  border-radius: 16px 16px 16px 4px;
+  background: #fffefa;
+  color: #355b46;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.insights-subtitle { margin: 10px 0 0; color: #526858; font-size: .86rem; }
+.penny-action { flex-shrink: 0; border-radius: 999px; box-shadow: 0 5px 0 #d0e5d3; }
+.penny-action span { display: inline-block; margin-right: 5px; }
+.insights-data-note { margin: 18px 0 0; padding-top: 16px; border-top: 1px dashed #c9ddce; color: #526858; font-size: .78rem; line-height: 1.65; }
+.insights-card > details { margin-top: 10px; padding: 12px 15px; border-radius: 14px; background: #ffffffa6; border: 1px solid #dce9de; }
+.insights-card > details summary { cursor: pointer; font-weight: 600; color: #355b46; }
+.insights-card > details a { display: inline-block; color: #24633d; text-decoration: underline; text-underline-offset: 3px; }
+.insights-thinking .penny-coin { animation: penny-coin 1.4s ease-in-out infinite; }
+.insights-thinking .penny-action span { animation: penny-spin 2s linear infinite; }
+.insights-thinking .penny-spark { animation: penny-twinkle 1.4s ease-in-out infinite alternate; }
+.insights-resting .penny-eye { display: none; }
+.insights-resting .penny-sleepy-eyes { display: block; }
+.insights-resting .penny-body { animation-duration: 6s; }
+.insights-happy .penny-body { animation: penny-cheer .65s ease-in-out 2; }
+@keyframes penny-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes penny-blink { 0%, 43%, 47%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.1); } }
+@keyframes penny-coin { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px) rotate(-3deg); } }
+@keyframes penny-spin { to { transform: rotate(360deg); } }
+@keyframes penny-twinkle { to { opacity: .35; transform: scale(.8); } }
+@keyframes penny-cheer { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-3deg); } }
+@media (max-width: 760px) {
+  .insights-intro { flex-wrap: wrap; gap: 14px; }
+  .penny-scene { flex-basis: 104px; height: 116px; }
+  .penny { width: 104px; height: 116px; }
+  .penny-label { font-size: .6rem; letter-spacing: .06em; }
+  .insights-welcome { flex-basis: calc(100% - 120px); }
+  .penny-action { width: 100%; margin-top: 4px; }
+  .penny-bubble { padding: 9px 12px; font-size: .88rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .penny-body, .insights-happy .penny-body, .penny-eye, .insights-thinking .penny-coin, .insights-thinking .penny-action span, .insights-thinking .penny-spark { animation: none; }
+}
