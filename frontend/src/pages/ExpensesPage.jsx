@@ -4,16 +4,19 @@ import RecentExpenses from '../components/RecentExpenses';
 import { useApp } from '../context/AppContext';
 import { validateExpense } from '../utils/validators';
 import { budgetApi } from '../services/api';
+import ExpenseFilters from '../components/ExpenseFilters';
+import { emptyFilters, filteredExpenses } from '../utils/budget';
 
 export default function ExpensesPage() {
   const { state, dispatch } = useApp();
   const [error, setError] = useState('');
   const [editingExpense, setEditingExpense] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [filters, setFilters] = useState({ ...emptyFilters });
 
   const recentExpenses = useMemo(
-    () => [...state.expenses].sort((a, b) => new Date(b.date) - new Date(a.date)),
-    [state.expenses]
+    () => filteredExpenses(state.expenses, filters).sort((a, b) => new Date(b.date) - new Date(a.date)),
+    [state.expenses, filters]
   );
 
   const handleSubmit = async (form, reset) => {
@@ -88,6 +91,8 @@ export default function ExpensesPage() {
         submitting={saving}
       />
 
+      <ExpenseFilters filters={filters} onChange={setFilters} categories={state.categories} />
+      <p role="status">Showing {recentExpenses.length} of {state.expenses.length} expenses</p>
       <RecentExpenses
         expenses={recentExpenses}
         categories={state.categories}

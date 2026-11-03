@@ -90,7 +90,7 @@ test('settings have defaults and are persisted per subject', async () => {
   const { handler } = setup();
   const defaults = body(await handler(event('GET /settings')));
   assert.equal(defaults.budgetAlerts, true);
-  const settings = { monthlySummary: true, budgetAlerts: false, dailyReminder: true, transactionNotifications: false };
+  const settings = { monthlySummary: true, budgetAlerts: false, dailyReminder: true, transactionNotifications: false, emailDeliveryEnabled: false };
   assert.deepEqual(body(await handler(event('PATCH /settings', settings))), settings);
   assert.deepEqual(body(await handler(event('GET /settings'))), settings);
   assert.deepEqual(body(await handler(event('GET /settings', undefined, undefined, 'bob'))), defaults);

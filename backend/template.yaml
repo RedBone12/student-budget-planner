@@ -13,6 +13,15 @@ Parameters:
     Type: String
     Default: http://localhost:5173
 
+  MailSender:
+    Type: String
+    Default: ''
+    Description: SES-verified sender; blank disables email sending.
+  SesSandbox:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+
 Globals:
   Function:
     Runtime: nodejs24.x
@@ -23,6 +32,8 @@ Globals:
     Environment:
       Variables:
         TABLE_NAME: !Ref BudgetTable
+        MAIL_SENDER: !Ref MailSender
+        SES_SANDBOX: !Ref SesSandbox
 
 Resources:
   BudgetTable:
@@ -133,10 +144,84 @@ Resources:
       FunctionName: !Sub student-budget-planner-api-${Stage}
       CodeUri: src/
       Handler: app.handler
+      Timeout: 120
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref BudgetTable
+        - Statement:
+            - Effect: Allow
+              Action: ses:SendEmail
+              Resource: !Sub arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+              Condition:
+                StringEquals:
+                  ses:FromAddress: !Ref MailSender
+            - Effect: Allow
+              Action: ses:GetEmailIdentity
+              Resource: !Sub arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/*
       Events:
+        DailyMaintenance:
+          Type: Schedule
+          Properties:
+            Name: !Sub student-budget-planner-daily-${Stage}
+            Schedule: cron(0 9 * * ? *)
+            Description: Recurring entries, monthly settlements and opt-in email.
+            RetryPolicy:
+              MaximumRetryAttempts: 2
+              MaximumEventAgeInSeconds: 3600
+        ImportExpenses:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /expenses/import
+            Method: POST
+        GetRecurring:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /recurring
+            Method: GET
+        CreateRecurring:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /recurring
+            Method: POST
+        UpdateRecurring:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /recurring/{id}
+            Method: PUT
+        DeleteRecurring:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /recurring/{id}
+            Method: DELETE
+        ApplyDue:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /recurring/apply-due
+            Method: POST
+        GetSettlements:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /settlements
+            Method: GET
+        CloseMonth:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /settlements
+            Method: POST
+        GetEmailStatus:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /email-status
+            Method: GET
         GetExpenses:
           Type: HttpApi
           Properties:

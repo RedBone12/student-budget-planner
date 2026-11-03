@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = {
   budgetAlerts: true,
   dailyReminder: true,
   transactionNotifications: true,
+  emailDeliveryEnabled: false,
 };
 
 export const DEFAULT_EXPENSES = [

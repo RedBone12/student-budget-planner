@@ -68,3 +68,21 @@ it('supports the locally proxied Lambda envelope response format', async () => {
   fetch.mockResolvedValue({ status: 200, ok: true, json: async () => ({ statusCode: 204, body: '' }) });
   expect(await api.createExpense({})).toBeNull();
 });
+
+it('integrates planning, CSV import and explicit email enrollment with the local API', async () => {
+  const category = await api.createCategory({ name: 'Planning food', budget: 100 });
+  expect(await api.listRecurring()).toEqual([]);
+  expect(await api.listSettlements()).toEqual([]);
+  const rule = await api.createRecurring({ categoryId: category.id, amount: 5, notes: 'Weekly', frequency: 'weekly', startDate: '2026-01-01', endDate: '2026-01-02' });
+  expect((await api.updateRecurring({ ...rule, active: false })).active).toBe(false);
+  expect((await api.applyDue()).created).toBe(0);
+  await api.updateRecurring({ ...rule, active: true });
+  expect((await api.applyDue()).created).toBe(1);
+  await api.deleteRecurring(rule.id);
+  const imported = await api.importExpenses({ importId: 'client-import', rows: [{ categoryId: category.id, amount: 1.25, date: '2026-01-02', notes: 'CSV' }] });
+  expect(imported.imported).toBe(1);
+  expect((await api.settleMonth('2026-01')).transactionCount).toBe(2);
+  expect((await api.listSettlements()).length).toBe(1);
+  expect((await api.deliveryStatus()).ready).toBe(true);
+  expect((await api.updateSettings({ emailDeliveryEnabled: true, dailyReminder: true })).emailDeliveryEnabled).toBe(true);
+});

@@ -2,6 +2,7 @@
 // The test server accepts only these opaque fixture tokens.
 const key = 'e2e-identity';
 const identities = {
+  'charlie@example.com': { token: 'test-charlie', name: 'Charlie Student' },
   'alice@example.com': { token: 'test-alice', name: 'Alice Student' },
   'bob@example.com': { token: 'test-bob', name: 'Bob Student' },
 };

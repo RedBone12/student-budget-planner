@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
 import { validateCategory } from "../utils/validators";
 import { budgetApi } from '../services/api';
@@ -8,6 +8,15 @@ export default function SettingsPage() {
   const [form, setForm] = useState({ id: "", name: "", budget: "" });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [updatingSetting, setUpdatingSetting] = useState(false);
+  const [delivery, setDelivery] = useState(null);
+  const [deliveryError, setDeliveryError] = useState('');
+  useEffect(() => {
+    let active = true;
+    budgetApi.deliveryStatus().then(value => { if (active) setDelivery(value); })
+      .catch(error => { if (active) setDeliveryError(error.message); });
+    return () => { active = false; };
+  }, []);
 
   const saveCategory = async (event) => {
     event?.preventDefault();
@@ -50,19 +59,21 @@ export default function SettingsPage() {
   };
 
   const toggleSetting = async (key) => {
+    if (updatingSetting) return;
     if (
       state.settings[key] &&
       !window.confirm("Are you sure want to disable it ?")
     )
       return;
     const nextSettings = { ...state.settings, [key]: !state.settings[key] };
+    setUpdatingSetting(true);
     try {
       const settings = await budgetApi.updateSettings(nextSettings);
       dispatch({ type: "UPDATE_SETTINGS", payload: settings });
       setError('');
     } catch (requestError) {
       setError(requestError.message);
-    }
+    } finally { setUpdatingSetting(false); }
   };
 
   return (
@@ -136,24 +147,32 @@ export default function SettingsPage() {
       </section>
       <section className="card">
         <h2>Notification Settings</h2>
-        <p className="setting-note">Budget and transaction alerts work in this browser. Email and daily delivery need the backend service.</p>
+        <p className="setting-note">Email runs daily at 09:00 UTC. Monthly summaries are sent on the first day of the month. Budget email alerts are checked daily. Browser activity notifications continue to work independently.</p>
+        <p role="status">{delivery?.ready ? 'Email delivery is available for your verified account email.' : 'Email delivery is unavailable until sender and account-email verification is complete.'}</p>
+        {delivery?.sandbox && <p>The email service is in restricted test mode. Your account email also needs email-provider verification; contact the app owner if delivery is unavailable.</p>}
+        {deliveryError && <p role="alert" className="form-error">{deliveryError}</p>}
+        <label className="toggle-row"><span>Enable scheduled email delivery</span>
+          <input type="checkbox" checked={Boolean(state.settings.emailDeliveryEnabled)} disabled={updatingSetting || (!state.settings.emailDeliveryEnabled && !delivery?.ready)} onChange={() => toggleSetting('emailDeliveryEnabled')} />
+        </label>
         <div className="toggle-list">
           {[
-            ["monthlySummary", "Monthly summary email (preference only)"],
+            ["monthlySummary", "Monthly summary email"],
             ["budgetAlerts", "Alert when category exceeds 80%"],
-            ["dailyReminder", "Daily spending reminder (preference only)"],
+            ["dailyReminder", "Daily spending reminder email"],
             ["transactionNotifications", "Expense activity notifications"],
           ].map(([key, label]) => (
             <label key={key} className="toggle-row">
               <span>{label}</span>
               <input
                 type="checkbox"
-                checked={state.settings[key]}
+                checked={Boolean(state.settings[key])}
+                disabled={updatingSetting}
                 onChange={() => toggleSetting(key)}
               />
             </label>
           ))}
         </div>
+        {delivery?.history?.length > 0 && <><h3>Recent email attempts</h3><ul>{delivery.history.map((item, index) => <li key={index}>{item.attemptedAt}: {item.status === 'ACCEPTED' ? 'Accepted by email provider (inbox delivery is not guaranteed)' : item.status === 'SENDING' ? 'Delivery outcome uncertain; automatic duplicate sends are suppressed' : 'Failed; will retry on the next scheduled attempt'}</li>)}</ul></>}
       </section>
     </div>
   );

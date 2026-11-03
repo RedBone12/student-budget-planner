@@ -30,6 +30,8 @@ test('deployment builds from stack outputs and uploads assets before index and i
   assert.ok(sam.includes('--no-fail-on-empty-changeset'));
   assert.ok(sam.includes(settings.AWS_CLOUDFORMATION_ROLE_ARN));
   assert.ok(sam.includes('ci'));
+  assert.ok(sam.includes('MailSender='));
+  assert.ok(sam.includes('SesSandbox=true'));
   const build = calls.find(call => call.command === 'npm');
   assert.equal(build.options.env.VITE_API_BASE_URL, 'https://api.example/dev');
   assert.equal(build.options.env.VITE_COGNITO_USER_POOL_CLIENT_ID, 'public-client');

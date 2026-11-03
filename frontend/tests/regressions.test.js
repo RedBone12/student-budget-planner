@@ -7,7 +7,7 @@ import { todayString, formatDate } from '../src/utils/formatters.js';
 import { loadState, saveState } from '../src/services/storage.js';
 import { validateRegistration } from '../src/services/auth.js';
 const login = (state,email) => reducer(state,{type:'LOGIN',payload:{email,fullName:email}});
-const expense = (amount=10) => ({id:'test',categoryId:'groceries',amount,date:'2026-03-02',notes:''});
+const expense = (amount=10) => ({id:'test',categoryId:'groceries',amount,date:new Date().toISOString().slice(0,10),notes:''});
 const add = (state,amount) => reducer(state,{type:'ADD_EXPENSE',payload:expense(amount),meta:{categoryName:'Groceries'}});
 test('account switching and reload preserve independent books',()=>{
  let s=login(createInitialState(),'a@example.com'); s=add(s,20);

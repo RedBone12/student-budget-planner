@@ -9,27 +9,29 @@ const COLORS = ['#3b82f6', '#22c55e', '#facc15', '#ef4444', '#64748b', '#8b5cf6'
 
 export default function HomePage() {
   const { state } = useApp();
+  const month = new Date().toISOString().slice(0, 7);
   const navigate = useNavigate();
   const { totalBudget, totalSpent, chartData } = useMemo(() => {
-    const spentByCategory = state.expenses.reduce((totals, expense) => {
+    const monthExpenses = state.expenses.filter(expense => expense.date.startsWith(month));
+    const spentByCategory = monthExpenses.reduce((totals, expense) => {
       totals[expense.categoryId] = (totals[expense.categoryId] || 0) + Number(expense.amount);
       return totals;
     }, {});
 
     return {
       totalBudget: state.categories.reduce((sum, item) => sum + Number(item.budget), 0),
-      totalSpent: state.expenses.reduce((sum, item) => sum + Number(item.amount), 0),
+      totalSpent: monthExpenses.reduce((sum, item) => sum + Number(item.amount), 0),
       chartData: state.categories
         .map((category) => ({ name: category.name, value: spentByCategory[category.id] || 0 }))
         .filter((item) => item.value > 0),
     };
-  }, [state.categories, state.expenses]);
+  }, [state.categories, state.expenses, month]);
 
   return (
     <div className="page-grid home-layout">
       <SummaryCards totalBudget={totalBudget} totalSpent={totalSpent} />
       <section className="card chart-card">
-        <h2>Spending by category</h2>
+        <h2>Spending by category — {month}</h2>
         {chartData.length === 0 ? <p className="empty-state">Add an expense to see this chart.</p> : null}
         <ResponsiveContainer width="100%" height={240}>
           <PieChart>

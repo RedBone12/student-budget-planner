@@ -10,6 +10,7 @@ const links = [
   ['notifications', 'Notifications'],
   ['settings', 'Settings'],
   ['reports', 'Reports'],
+  ['planning', 'Planning'],
 ];
 
 export default function DashboardLayout() {

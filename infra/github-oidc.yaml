@@ -86,6 +86,7 @@ Resources:
                   - apigateway:*
                   - s3:*
                   - cloudfront:*
+                  - events:*
                 Resource: !Ref ApplicationResourceArns
               - Effect: Allow
                 Action:

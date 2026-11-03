@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { currency, formatDate, todayString } from '../utils/formatters';
 import { validateReportFilters } from '../utils/validators';
+import { emptyFilters, filteredExpenses, filterError } from '../utils/budget';
 
 export default function ReportsPage() {
   const { state } = useApp();
-  const initialFilters = { categoryId: '', fromDate: '', toDate: todayString() };
+  const initialFilters = { ...emptyFilters, toDate: todayString() };
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [error, setError] = useState('');
@@ -13,10 +14,7 @@ export default function ReportsPage() {
 
   const rows = useMemo(() => {
     const categoryNames = new Map(state.categories.map((item) => [item.id, item.name]));
-    return state.expenses
-      .filter((expense) => (!appliedFilters.categoryId || expense.categoryId === appliedFilters.categoryId))
-      .filter((expense) => (!appliedFilters.fromDate || expense.date >= appliedFilters.fromDate))
-      .filter((expense) => (!appliedFilters.toDate || expense.date <= appliedFilters.toDate))
+    return filteredExpenses(state.expenses, appliedFilters)
       .map((expense) => ({
         ...expense,
         categoryName: categoryNames.get(expense.categoryId) || 'Unknown',
@@ -26,13 +24,13 @@ export default function ReportsPage() {
   const total = rows.reduce((sum, item) => sum + Number(item.amount), 0);
 
   const generateReport = () => {
-    const message = validateReportFilters(filters.fromDate, filters.toDate);
+    const message = validateReportFilters(filters.fromDate, filters.toDate) || filterError(filters);
     setError(message);
     if (!message) setAppliedFilters(filters);
   };
 
   const downloadPdf = async () => {
-    const message = validateReportFilters(filters.fromDate, filters.toDate);
+    const message = validateReportFilters(appliedFilters.fromDate, appliedFilters.toDate) || filterError(appliedFilters);
     if (message) return setError(message);
     setError('');
     setIsDownloading(true);
@@ -75,6 +73,8 @@ export default function ReportsPage() {
           End date
           <input type="date" max={todayString()} value={filters.toDate} onChange={(e) => setFilters((prev) => ({ ...prev, toDate: e.target.value }))} />
         </label>
+        <label>Minimum amount (€)<input type="number" min="0" step="0.01" value={filters.minAmount} onChange={event => setFilters(previous => ({ ...previous, minAmount: event.target.value }))} /></label>
+        <label>Maximum amount (€)<input type="number" min="0" step="0.01" value={filters.maxAmount} onChange={event => setFilters(previous => ({ ...previous, maxAmount: event.target.value }))} /></label>
         <button className="primary-btn large" onClick={generateReport}>Generate Report</button>
       </div>
       {error ? <p className="form-error" role="alert">{error}</p> : null}

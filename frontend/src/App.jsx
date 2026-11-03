@@ -10,6 +10,7 @@ const ChartsPage = lazy(() => import('./pages/ChartsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const PlanningPage = lazy(() => import('./pages/PlanningPage'));
 
 function ProtectedRoute({ children }) {
   const { state, authReady } = useApp();
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="planning" element={<PlanningPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

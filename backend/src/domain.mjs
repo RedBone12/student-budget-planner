@@ -27,10 +27,10 @@ export function normalizeExpense(input, existingId) {
   const date = cleanRequired(input.date, 'date', 10);
   const notes = cleanOptional(input.notes, 500);
 
-  if (!Number.isFinite(amount) || amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 999999999.99 || !/^\d+(\.\d{1,2})?$/.test(String(input.amount))) {
     throw new InputError('amount must be greater than zero');
   }
-  if (!DATE_PATTERN.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) {
+  if (!DATE_PATTERN.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date) {
     throw new InputError('date must use YYYY-MM-DD');
   }
 
@@ -62,6 +62,7 @@ export function normalizeSettings(input) {
     budgetAlerts: Boolean(input.budgetAlerts),
     dailyReminder: Boolean(input.dailyReminder),
     transactionNotifications: Boolean(input.transactionNotifications),
+    emailDeliveryEnabled: input.emailDeliveryEnabled === true,
   };
 }
 
