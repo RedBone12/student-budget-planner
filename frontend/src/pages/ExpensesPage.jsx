@@ -12,7 +12,10 @@ export default function ExpensesPage() {
   const [error, setError] = useState('');
   const [editingExpense, setEditingExpense] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [filters, setFilters] = useState({ ...emptyFilters });
+  const [filters, setFilters] = useState(() => {
+    const query = new URLSearchParams(window.location.search);
+    return Object.fromEntries(Object.entries(emptyFilters).map(([key, value]) => [key, query.get(key) || value]));
+  });
 
   const recentExpenses = useMemo(
     () => filteredExpenses(state.expenses, filters).sort((a, b) => new Date(b.date) - new Date(a.date)),

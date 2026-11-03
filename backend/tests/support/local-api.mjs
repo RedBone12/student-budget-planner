@@ -10,6 +10,7 @@ export function memoryClient() {
   const permitted = input => {
     const old = items.get(key(input.Item));
     const condition = input.ConditionExpression || '';
+    if (condition.includes('OR expiresAt')) return !old || old.expiresAt < input.ExpressionAttributeValues[':now'];
     if (condition.includes('OR #status')) return !old || old.status === 'FAILED';
     if (condition.startsWith('revision =')) return old?.revision === input.ExpressionAttributeValues[':revision'];
     if (condition.includes('attribute_not_exists')) return !old;
@@ -56,10 +57,10 @@ export function memoryClient() {
 }
 
 // Opaque fixture tokens map to fixed identities at the gateway boundary.
-const testIdentities = { 'test-alice': 'alice', 'test-bob': 'bob', 'test-charlie': 'charlie' };
+const testIdentities = { 'test-alice': 'alice', 'test-bob': 'bob', 'test-charlie': 'charlie', 'test-dana': 'dana' };
 
-export async function startLocalApi({ port = 0, client = memoryClient() } = {}) {
-  const handler = createHandler({ documentClient: client, tableName: 'local-test-budget', sender: 'sender@example.com',
+export async function startLocalApi({ port = 0, client = memoryClient(), modelClient, modelId = '' } = {}) {
+  const handler = createHandler({ documentClient: client, tableName: 'local-test-budget', modelClient, modelId, sender: 'sender@example.com',
     mailClient: { send: async () => ({ VerifiedForSendingStatus: true, MessageId: 'local-message' }) } });
   const server = createServer(async (request, response) => {
     const headers = {

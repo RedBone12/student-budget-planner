@@ -7,6 +7,9 @@ vi.mock('../../src/services/auth', () => ({ authService: {} }));
 import { fetchAuthSession } from 'aws-amplify/auth';
 let server;
 let api;
+it('insights API uses the authenticated handler and returns explicit insufficient-data mode', async () => {
+  expect(await api.analyzeSpending()).toMatchObject({ mode: 'insufficient', evidence: [] });
+});
 beforeEach(async () => {
   server = await startLocalApi();
   vi.resetModules();

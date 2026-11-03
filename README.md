@@ -92,7 +92,7 @@ npm --prefix frontend run test:e2e
 sam validate --lint --template-file backend/template.yaml
 ```
 
-The test suite contains 13 frontend regression tests, 21 React Testing Library page tests, 7 frontend API client tests, 33 backend domain/handler/HTTP/planning tests, and 2 Chromium browser journeys. See [`docs/testing.md`](docs/testing.md) for commands, coverage scope, and simulation boundaries.
+The test suite contains 13 frontend regression tests, 26 React Testing Library page tests, 8 frontend API client tests, 42 backend domain/handler/HTTP/planning/AI tests, and 3 Chromium browser journeys. See [`docs/testing.md`](docs/testing.md) for commands, coverage scope, and simulation boundaries.
 
 ### Continuous integration
 
@@ -106,7 +106,7 @@ Node's built-in V8 coverage runner and Vitest enforce these baselines:
 | Frontend selected pages/components and API client (Vitest) | 85% | 75% | 85% |
 | Backend handler and domain modules (Node) | 95% | 85% | 100% |
 
-The frontend regression gate covers modules loaded by the original Node tests. The Vitest gate explicitly includes `ExpensesPage`, `AuthPage`, `ExpenseForm`, `RecentExpenses`, `PlanningPage`, `CsvImport`, `ExpenseFilters`, budget utilities and the API client, including unexecuted code in those files. Other frontend pages are outside this coverage scope. Backend coverage includes all four application source modules (`app.mjs`, `domain.mjs`, `planning.mjs` and `maintenance.mjs`), excluding SDK dependencies. Coverage tables appear in the Actions logs; falling below any threshold fails the job. AWS services are simulated locally: these tests do not verify deployed infrastructure, JWT signatures, IAM policies or real DynamoDB behavior.
+The frontend regression gate covers modules loaded by the original Node tests. The Vitest gate explicitly includes `ExpensesPage`, `AuthPage`, `ExpenseForm`, `RecentExpenses`, `PlanningPage`, `CsvImport`, `ExpenseFilters`, budget utilities, `SpendingInsights` and the API client, including unexecuted code in those files. Other frontend pages are outside this coverage scope. Backend coverage includes all five application source modules (`app.mjs`, `domain.mjs`, `planning.mjs`, `maintenance.mjs` and `insights.mjs`), excluding SDK dependencies. Coverage tables appear in the Actions logs; falling below any threshold fails the job. AWS services are simulated locally: these tests do not verify deployed infrastructure, JWT signatures, IAM policies or real DynamoDB behavior.
 
 For a fresh checkout, run `npm ci --prefix frontend` and `npm ci --prefix backend/src` before the validation commands. Install Chromium from the frontend directory with `npx playwright install chromium` (CI uses `--with-deps` on Linux). SAM CLI 1.166.2 is used in CI. To make these checks mandatory before merging, configure the repository ruleset or branch protection to require `Tests, lint and build`, `Browser E2E` and `SAM lint` after the first Actions run. Adding a workflow alone does not enable branch protection.
 
@@ -121,4 +121,4 @@ The deployed development stack is `student-budget-planner-dev` in `eu-west-1`. C
 
 ## Current scope
 
-Combined date/category/amount filters, immutable monthly settlements, weekly/monthly recurring expenses and previewed CSV imports are implemented. Scheduled email uses EventBridge and SES with explicit opt-in and verified account email. SES sandbox restrictions apply. See [business features](docs/business-features.md) for UTC calendar rules, import limits, retry behavior and deployment verification. Bank-specific statement import and AI features are outside the current scope.
+Combined date/category/amount filters, immutable monthly settlements, weekly/monthly recurring expenses and previewed CSV imports are implemented. Scheduled email uses EventBridge and SES with explicit opt-in and verified account email. SES sandbox restrictions apply. See [business features](docs/business-features.md) for UTC calendar rules, import limits, retry behavior and deployment verification. Dashboard also provides evidence-backed AI spending insights through Amazon Bedrock, with per-user caching, daily generation limits and confirmed budget adjustments. See [AI insights](docs/ai-insights.md) for privacy boundaries, calculation rules and the pending AWS account-verification restriction observed during live testing. Bank-specific statement import is outside the current scope.
