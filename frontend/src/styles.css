@@ -275,5 +275,5 @@ input[type='checkbox'] { width: 46px; height: 24px; }
   .penny-bubble { padding: 9px 12px; font-size: .88rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .penny-body, .penny-eye, .insights-thinking .penny-coin, .insights-thinking .penny-action span, .insights-thinking .penny-spark { animation: none; }
+  .penny-body, .insights-happy .penny-body, .penny-eye, .insights-thinking .penny-coin, .insights-thinking .penny-action span, .insights-thinking .penny-spark { animation: none; }
 }
