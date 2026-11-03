@@ -38,11 +38,11 @@ Success means zero failed tests, both coverage commands exit with code 0, and Pl
 
 The page tests render actual React components using accessible labels and roles. The expense page uses the real reducer in a small test context; its API calls are mocked so failures and pending requests can be controlled. Authentication page tests simulate authentication responses and assert navigation and errors.
 
-`npm --prefix frontend run test:components` runs just the 21 page tests. `npm --prefix frontend run test:integration` runs the 7 API client tests. `npm --prefix frontend test` runs all 41 non-browser frontend tests. `npm --prefix backend/src test` runs all 32 backend tests.
+`npm --prefix frontend run test:components` runs just the 21 page tests. `npm --prefix frontend run test:integration` runs the 7 API client tests. `npm --prefix frontend test` runs all 41 non-browser frontend tests. `npm --prefix backend/src test` runs all 33 backend tests.
 
 `npm --prefix frontend run coverage` keeps the original logic coverage gate and adds Vitest V8 coverage over nine explicitly listed files: expense/auth/planning pages, expense form/table, import/filter components, budget utilities and API client. Reports are written to `frontend/coverage` (HTML and LCOV). This is scoped coverage, not coverage of every frontend page. Backend coverage includes all four application source modules; SDK dependencies are excluded.
 
-The additional 16 backend planning tests exercise combined filters, calendar boundaries, atomic/idempotent imports, recurring conflicts, immutable settlements, verified email claims, SES enrollment, scheduled execution, retries and ambiguous mail acceptance. The second browser journey imports CSV, combines filters, applies due entries twice and reloads a saved settlement. SES is also substituted in local tests; no real mail is sent.
+The additional 17 backend planning tests exercise combined filters, calendar boundaries, atomic/idempotent imports, recurring conflicts, immutable settlements, verified email claims, SES enrollment, scheduled execution, retries and ambiguous mail acceptance. The second browser journey imports CSV, combines filters, applies due entries twice and reloads a saved settlement. SES is also substituted in local tests; no real mail is sent.
 
 ## Local integration boundaries
 

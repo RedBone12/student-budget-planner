@@ -92,7 +92,7 @@ npm --prefix frontend run test:e2e
 sam validate --lint --template-file backend/template.yaml
 ```
 
-The test suite contains 13 frontend regression tests, 21 React Testing Library page tests, 7 frontend API client tests, 32 backend domain/handler/HTTP/planning tests, and 2 Chromium browser journeys. See [`docs/testing.md`](docs/testing.md) for commands, coverage scope, and simulation boundaries.
+The test suite contains 13 frontend regression tests, 21 React Testing Library page tests, 7 frontend API client tests, 33 backend domain/handler/HTTP/planning tests, and 2 Chromium browser journeys. See [`docs/testing.md`](docs/testing.md) for commands, coverage scope, and simulation boundaries.
 
 ### Continuous integration
 
