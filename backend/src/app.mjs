@@ -7,6 +7,8 @@ import {
   TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { SESv2Client, GetEmailIdentityCommand } from '@aws-sdk/client-sesv2';
+import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
+import { createInsights } from './insights.mjs';
 import { createHash } from 'node:crypto';
 import { createMaintenance } from './maintenance.mjs';
 import { expenseKey, filterExpenses, normalizeRecurring, utcDay } from './planning.mjs';
@@ -32,8 +34,10 @@ export const handler = createHandler({
 });
 
 export function createHandler({ documentClient, tableName, mailClient = new SESv2Client({}),
-  sender = process.env.MAIL_SENDER || '', sandbox = process.env.SES_SANDBOX !== 'false', now = () => new Date() }) {
+  sender = process.env.MAIL_SENDER || '', sandbox = process.env.SES_SANDBOX !== 'false', now = () => new Date(),
+  modelClient = new BedrockRuntimeClient({ maxAttempts: 1 }), modelId = process.env.AI_MODEL_ID || '' }) {
   const maintenance = createMaintenance({ documentClient, tableName, mailClient, sender, now });
+  const insights = createInsights({ documentClient, tableName, modelClient, modelId, now });
   return handle;
 
   async function handle(event) {
@@ -45,6 +49,8 @@ export function createHandler({ documentClient, tableName, mailClient = new SESv
       const id = decodeURIComponent(event.pathParameters?.id || '');
 
       switch (routeKey) {
+        case 'POST /insights':
+          return ok(await insights(PK, await listItems(PK, 'EXPENSE#', expenseForClient), await listItems(PK, 'CATEGORY#', categoryForClient)));
         case 'GET /expenses':
           return ok(filterExpenses(await listItems(PK, 'EXPENSE#', expenseForClient), event.queryStringParameters || {}));
         case 'POST /expenses/import':

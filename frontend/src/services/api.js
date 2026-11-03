@@ -55,6 +55,7 @@ export const budgetApi = {
   deleteCategory: (id) => request(`/categories/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   updateSettings: (settings) => request('/settings', json('PATCH', settings)),
   deliveryStatus: () => request('/email-status'),
+  analyzeSpending: () => request('/insights', { method: 'POST' }),
   listRecurring: () => request('/recurring'),
   createRecurring: (rule) => request('/recurring', json('POST', rule)),
   updateRecurring: (rule) => request(`/recurring/${encodeURIComponent(rule.id)}`, json('PUT', rule)),

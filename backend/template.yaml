@@ -21,6 +21,10 @@ Parameters:
     Type: String
     Default: 'true'
     AllowedValues: ['true', 'false']
+  AiModelId:
+    Type: String
+    Default: eu.amazon.nova-micro-v1:0
+    AllowedValues: ['', 'eu.amazon.nova-micro-v1:0']
 
 Globals:
   Function:
@@ -34,11 +38,15 @@ Globals:
         TABLE_NAME: !Ref BudgetTable
         MAIL_SENDER: !Ref MailSender
         SES_SANDBOX: !Ref SesSandbox
+        AI_MODEL_ID: !Ref AiModelId
 
 Resources:
   BudgetTable:
     Type: AWS::DynamoDB::Table
     Properties:
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: PK
@@ -150,6 +158,14 @@ Resources:
             TableName: !Ref BudgetTable
         - Statement:
             - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/eu.amazon.nova-micro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:eu-west-1::foundation-model/amazon.nova-micro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:eu-west-3::foundation-model/amazon.nova-micro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:eu-central-1::foundation-model/amazon.nova-micro-v1:0
+                - !Sub arn:${AWS::Partition}:bedrock:eu-north-1::foundation-model/amazon.nova-micro-v1:0
+            - Effect: Allow
               Action: ses:SendEmail
               Resource: !Sub arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/*
               Condition:
@@ -159,6 +175,12 @@ Resources:
               Action: ses:GetEmailIdentity
               Resource: !Sub arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/*
       Events:
+        GenerateInsights:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BudgetHttpApi
+            Path: /insights
+            Method: POST
         DailyMaintenance:
           Type: Schedule
           Properties:

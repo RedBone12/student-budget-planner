@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 import { useApp } from '../context/AppContext';
 import SummaryCards from '../components/SummaryCards';
+import SpendingInsights from '../components/SpendingInsights';
 import { currency } from '../utils/formatters';
 
 const COLORS = ['#3b82f6', '#22c55e', '#facc15', '#ef4444', '#64748b', '#8b5cf6'];
@@ -29,6 +30,7 @@ export default function HomePage() {
 
   return (
     <div className="page-grid home-layout">
+      <SpendingInsights key={state.session.user?.email} />
       <SummaryCards totalBudget={totalBudget} totalSpent={totalSpent} />
       <section className="card chart-card">
         <h2>Spending by category — {month}</h2>
